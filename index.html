@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI & AI Agent Expert</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f13;
+    --bg2: #16213e;
+    --bg3: #1e1e2e;
+    --border: #2a2a4a;
+    --accent: #5b4cff;
+    --accent2: #7c6bff;
+    --text: #e8e8f0;
+    --muted: #888;
+  }
+
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+  /* ── LOGIN ── */
+  #login {
+    height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #0f0f13, #1a1a2e); padding: 20px;
+  }
+  .login-box {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 20px;
+    padding: 48px 40px; width: 100%; max-width: 400px; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  }
+  .login-icon { font-size: 52px; margin-bottom: 16px; }
+  .login-title { font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .login-sub { font-size: 14px; color: var(--muted); margin-bottom: 32px; }
+  .login-input {
+    width: 100%; padding: 14px 16px; border-radius: 12px;
+    border: 1px solid var(--border); background: var(--bg);
+    color: #fff; font-size: 16px; outline: none; margin-bottom: 12px;
+    transition: border-color .2s;
+  }
+  .login-input:focus { border-color: var(--accent); }
+  .login-err { color: #ff6b6b; font-size: 14px; margin-bottom: 10px; min-height: 20px; }
+  .login-btn {
+    width: 100%; padding: 14px; border-radius: 12px; border: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
+    transition: opacity .2s, transform .1s;
+  }
+  .login-btn:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+  .login-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ── CHAT ── */
+  #chat { height: 100vh; display: none; flex-direction: column; max-width: 800px; margin: 0 auto; }
+
+  .header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px; background: var(--bg2);
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .header-avatar { font-size: 30px; }
+  .header-title { font-size: 16px; font-weight: 700; }
+  .header-sub { font-size: 11px; color: var(--accent); margin-top: 2px; }
+  .logout-btn {
+    margin-left: auto; background: none; border: none;
+    color: #555; font-size: 20px; cursor: pointer; padding: 6px 10px;
+    border-radius: 8px; transition: color .2s;
+  }
+  .logout-btn:hover { color: #ff6b6b; }
+
+  .messages {
+    flex: 1; overflow-y: auto; padding: 20px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .messages::-webkit-scrollbar { width: 6px; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .empty {
+    margin: auto; text-align: center; padding: 40px 20px;
+  }
+  .empty-icon { font-size: 52px; margin-bottom: 14px; }
+  .empty-title { font-size: 18px; font-weight: 600; color: #ccc; margin-bottom: 6px; }
+  .empty-sub { font-size: 14px; color: #555; margin-bottom: 20px; }
+  .suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .sugg {
+    padding: 8px 14px; border-radius: 20px; border: 1px solid var(--border);
+    background: var(--bg3); color: #999; font-size: 13px; cursor: pointer;
+    transition: all .15s;
+  }
+  .sugg:hover { background: #2a2a3e; color: #ccc; border-color: var(--accent); }
+
+  .msg-row { display: flex; align-items: flex-end; gap: 8px; }
+  .msg-row.user { justify-content: flex-end; }
+  .msg-row.bot { justify-content: flex-start; }
+  .msg-avatar { font-size: 22px; flex-shrink: 0; }
+  .bubble {
+    max-width: 75%; padding: 12px 16px;
+    font-size: 15px; line-height: 1.65;
+    white-space: pre-wrap; word-break: break-word;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  }
+  .bubble.user { background: var(--accent); border-radius: 18px 18px 4px 18px; }
+  .bubble.bot { background: var(--bg3); border-radius: 18px 18px 18px 4px; }
+
+  /* typing dots */
+  .typing { display: flex; gap: 5px; align-items: center; padding: 4px 2px; }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #666;
+    animation: blink 1.2s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: .2s; }
+  .dot:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink {
+    0%, 80%, 100% { opacity: .2; transform: scale(.8); }
+    40% { opacity: 1; transform: scale(1); }
+  }
+
+  .input-area {
+    display: flex; gap: 10px; padding: 14px 20px;
+    background: var(--bg2); border-top: 1px solid var(--border);
+    align-items: flex-end; flex-shrink: 0;
+  }
+  .msg-input {
+    flex: 1; padding: 12px 16px; border-radius: 12px;
+    border: 1px solid var(--border); background: var(--bg);
+    color: #fff; font-size: 15px; resize: none; outline: none;
+    font-family: inherit; line-height: 1.5; transition: border-color .2s;
+    max-height: 120px;
+  }
+  .msg-input:focus { border-color: var(--accent); }
+  .msg-input::placeholder { color: #444; }
+  .send-btn {
+    width: 44px; height: 44px; border-radius: 12px; border: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff; font-size: 20px; cursor: pointer; flex-shrink: 0;
+    transition: opacity .2s, transform .1s;
+  }
+  .send-btn:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+  .send-btn:disabled { opacity: .35; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login">
+  <div class="login-box">
+    <div class="login-icon">🤖</div>
+    <h1 class="login-title">AI &amp; AI Agent Expert</h1>
+    <p class="login-sub">Hỏi đáp mọi thứ về AI, LLM, và AI Agent</p>
+    <input id="pw-input" class="login-input" type="password" placeholder="Nhập mật khẩu..." autocomplete="current-password" />
+    <p id="login-err" class="login-err"></p>
+    <button id="login-btn" class="login-btn">Vào Chat →</button>
+  </div>
+</div>
+
+<!-- CHAT SCREEN -->
+<div id="chat">
+  <div class="header">
+    <span class="header-avatar">🤖</span>
+    <div>
+      <div class="header-title">AI &amp; AI Agent Expert</div>
+      <div class="header-sub">● Online · Powered by Claude</div>
+    </div>
+    <button class="logout-btn" id="logout-btn" title="Đăng xuất">⏻</button>
+  </div>
+
+  <div class="messages" id="messages">
+    <div class="empty" id="empty-state">
+      <div class="empty-icon">💡</div>
+      <p class="empty-title">Xin chào! Tôi là chuyên gia AI của bạn.</p>
+      <p class="empty-sub">Hãy thử hỏi một trong những câu sau:</p>
+      <div class="suggestions">
+        <button class="sugg">AI Agent là gì?</button>
+        <button class="sugg">So sánh GPT-4 và Claude</button>
+        <button class="sugg">LangChain dùng để làm gì?</button>
+        <button class="sugg">RAG là gì và hoạt động thế nào?</button>
+        <button class="sugg">Các bước xây dựng AI Agent</button>
+        <button class="sugg">MCP (Model Context Protocol) là gì?</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <textarea id="msg-input" class="msg-input" rows="1" placeholder="Hỏi về AI, AI Agent, LLM... (Enter để gửi, Shift+Enter xuống dòng)"></textarea>
+    <button id="send-btn" class="send-btn" disabled>↑</button>
+  </div>
+</div>
+
+<script>
+  const SESSION_KEY = 'ai_chat_pw'
+  let password = sessionStorage.getItem(SESSION_KEY)
+  let messages = []
+  let isLoading = false
+
+  const loginEl = document.getElementById('login')
+  const chatEl = document.getElementById('chat')
+  const pwInput = document.getElementById('pw-input')
+  const loginBtn = document.getElementById('login-btn')
+  const loginErr = document.getElementById('login-err')
+  const messagesEl = document.getElementById('messages')
+  const emptyState = document.getElementById('empty-state')
+  const msgInput = document.getElementById('msg-input')
+  const sendBtn = document.getElementById('send-btn')
+  const logoutBtn = document.getElementById('logout-btn')
+
+  // Init
+  if (password) showChat()
+
+  // Login
+  loginBtn.addEventListener('click', doLogin)
+  pwInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin() })
+
+  async function doLogin() {
+    const pw = pwInput.value.trim()
+    if (!pw) return
+    loginBtn.disabled = true
+    loginBtn.textContent = 'Đang xác thực...'
+    loginErr.textContent = ''
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        password = pw
+        sessionStorage.setItem(SESSION_KEY, pw)
+        showChat()
+      } else {
+        loginErr.textContent = data.error || 'Sai mật khẩu'
+        loginBtn.disabled = false
+        loginBtn.textContent = 'Vào Chat →'
+      }
+    } catch {
+      loginErr.textContent = 'Không thể kết nối. Thử lại.'
+      loginBtn.disabled = false
+      loginBtn.textContent = 'Vào Chat →'
+    }
+  }
+
+  function showChat() {
+    loginEl.style.display = 'none'
+    chatEl.style.display = 'flex'
+    msgInput.focus()
+  }
+
+  // Logout
+  logoutBtn.addEventListener('click', () => {
+    sessionStorage.removeItem(SESSION_KEY)
+    password = null
+    messages = []
+    loginEl.style.display = 'flex'
+    chatEl.style.display = 'none'
+    pwInput.value = ''
+    loginBtn.disabled = false
+    loginBtn.textContent = 'Vào Chat →'
+  })
+
+  // Suggestions
+  document.querySelectorAll('.sugg').forEach(btn => {
+    btn.addEventListener('click', () => {
+      msgInput.value = btn.textContent
+      sendBtn.disabled = false
+      msgInput.focus()
+    })
+  })
+
+  // Input
+  msgInput.addEventListener('input', () => {
+    sendBtn.disabled = !msgInput.value.trim() || isLoading
+    msgInput.style.height = 'auto'
+    msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + 'px'
+  })
+
+  msgInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      if (!sendBtn.disabled) sendMessage()
+    }
+  })
+
+  sendBtn.addEventListener('click', sendMessage)
+
+  async function sendMessage() {
+    const text = msgInput.value.trim()
+    if (!text || isLoading) return
+
+    isLoading = true
+    sendBtn.disabled = true
+    msgInput.value = ''
+    msgInput.style.height = 'auto'
+
+    // Hide empty state
+    if (emptyState) emptyState.style.display = 'none'
+
+    // Add user message
+    messages.push({ role: 'user', content: text })
+    appendMessage('user', text)
+
+    // Show typing
+    const typingEl = appendTyping()
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages, password })
+      })
+      const data = await res.json()
+      typingEl.remove()
+
+      if (res.ok) {
+        messages.push({ role: 'assistant', content: data.reply })
+        appendMessage('bot', data.reply)
+      } else if (res.status === 401) {
+        sessionStorage.removeItem(SESSION_KEY)
+        password = null
+        loginEl.style.display = 'flex'
+        chatEl.style.display = 'none'
+      } else {
+        appendMessage('bot', '⚠️ Lỗi: ' + (data.error || 'Không xác định'))
+      }
+    } catch {
+      typingEl.remove()
+      appendMessage('bot', '⚠️ Không thể kết nối. Vui lòng thử lại.')
+    }
+
+    isLoading = false
+    sendBtn.disabled = !msgInput.value.trim()
+    msgInput.focus()
+  }
+
+  function appendMessage(role, text) {
+    const row = document.createElement('div')
+    row.className = 'msg-row ' + role
+    const isUser = role === 'user'
+    row.innerHTML = `
+      ${!isUser ? '<span class="msg-avatar">🤖</span>' : ''}
+      <div class="bubble ${role}">${escapeHtml(text)}</div>
+      ${isUser ? '<span class="msg-avatar">👤</span>' : ''}
+    `
+    messagesEl.appendChild(row)
+    scrollBottom()
+    return row
+  }
+
+  function appendTyping() {
+    const row = document.createElement('div')
+    row.className = 'msg-row bot'
+    row.innerHTML = `
+      <span class="msg-avatar">🤖</span>
+      <div class="bubble bot">
+        <div class="typing">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+      </div>
+    `
+    messagesEl.appendChild(row)
+    scrollBottom()
+    return row
+  }
+
+  function scrollBottom() {
+    messagesEl.scrollTop = messagesEl.scrollHeight
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+  }
+</script>
+</body>
+</html>
